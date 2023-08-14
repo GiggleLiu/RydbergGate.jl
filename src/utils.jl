@@ -16,7 +16,7 @@ end
 function mis_compact_tropical_tensor(ixs::AbstractVector, iy::AbstractVector, size_dict; compact::Bool=true, weights=NoWeight())
     ixs = vcat([[i] for i in 1:length(size_dict)], ixs) # labels for vertex tensors
     optcode = optimize_fastgreedy(ixs, iy)  # specialized, faster approach
-    xs = [length(ix)==1 ? misv([Tropical(0.0), Tropical(weights isa NoWeight ? 0.0 : weights[ix[1]])]) : misb(Tropical{Float64}, length(ix)) for ix in ixs]
+    xs = [length(ix)==1 ? GenericTensorNetworks.misv([Tropical(0.0), Tropical(weights isa NoWeight ? 0.0 : weights[ix[1]])]) : GenericTensorNetworks.misb(Tropical{Float64}, length(ix)) for ix in ixs]
     m = einsum(optcode, (xs...,), size_dict)
     compact && mis_compactify!(m)
     return m
@@ -34,7 +34,7 @@ function optimize_fastgreedy(ixs, iy)
     for l in iy
         counts[l] = get(counts, l, 0) + 1
     end
-    res = NestedEinsum{DynamicEinCode{Int}}(1)
+    res = DynamicNestedEinsum{Int}(1)
     mask[1] = false
     for l in ixs[1]
         counts[l] -= 1
@@ -51,7 +51,7 @@ function optimize_fastgreedy(ixs, iy)
             counts[l] -= 1
         end
         iout_new = filter(l->counts[l]>0, iout ∪ ixs[j])
-        res = NestedEinsum((res, NestedEinsum{DynamicEinCode{Int}}(j)), DynamicEinCode([iout, ixs[j]],i==length(ixs)-1 ? iy : iout_new))
+        res = DynamicNestedEinsum((res, DynamicNestedEinsum{Int}(j)), DynamicEinCode([iout, ixs[j]],i==length(ixs)-1 ? iy : iout_new))
         iout = iout_new
         mask[j] = false
     end

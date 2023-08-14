@@ -1,55 +1,5 @@
 export gridsearch, gridsearch3, gridsearch4
 
-function gridsearch4(target_matrix::AbstractArray{<:Tropical,4})
-    locs0 = [(1.0, 3.0), (3.0, 1.0), (3.0, 5.0), (5.0, 3.0)]
-    for d1=0:1, d2=0:1, d3=0:1, d4=0:1
-        M1 = GenericTensorNetworks.content.(target_matrix)
-        for i=0:(1<<9)-1
-            locs = [locs0[1] .+ (0, d1), locs0[2] .+ (d2, 0), locs0[3] .+ (d3, 0), locs0[4] .+ (0, d4)]
-            d1 == 1 && push!(locs, (0.0, 0.0))
-            d2 == 1 && push!(locs, (5.0, 0.0))
-            d3 == 1 && push!(locs, (5.0, 5.0))
-            d4 == 1 && push!(locs, (0.0, 5.0))
-            for k=0:8
-                if (i>>k) & 1 == 1
-                    x, y = k%3+2.0, k÷3+2.0
-                    @assert x>=2 && x<=4
-                    @assert y>=2 && y<=4
-                    push!(locs, (x, y))
-                end
-            end
-            g = unitdisk_graph(locs, 1.6)
-            M2 = GenericTensorNetworks.content.(mis_compact_tropical_tensor(g, [1,2,3,4]))
-            if is_diff_by_const(M1, M2)[1]
-                @show locs
-            end
-        end
-    end
-    return nothing
-end
-
-function gridsearch3(target_matrix::AbstractArray{<:Tropical,3})
-    M1 = GenericTensorNetworks.content.(target_matrix)
-    locs0 = [(1.0, 3.0), (3.0, 1.0), (3.0, 5.0)]
-    for i=0:(1<<9)-1
-        locs = copy(locs0)
-        for k=0:8
-            if (i>>k) & 1 == 1
-                x, y = k%3+2.0, k÷3+2.0
-                @assert x>=2 && x<=4
-                @assert y>=2 && y<=4
-                push!(locs, (x, y))
-            end
-        end
-        g = unitdisk_graph(locs, 1.6)
-        M2 = GenericTensorNetworks.content.(mis_compact_tropical_tensor(g, [1,2,3]))
-        if is_diff_by_const(M1, M2)[1]
-            @show locs
-        end
-    end
-    return nothing
-end
-
 function gridsearch(match, nrow, ncol, boundary_locs::T) where T<:Vector
     N = length(boundary_locs)
     res = T[]
@@ -74,83 +24,6 @@ function gridsearch(match, nrow, ncol, boundary_locs::T) where T<:Vector
     return res
 end
 
-#        bi       si
-#        ●        ●
-#  ai x              ● ai
-#
-#  co ●              ● ci
-#        x        ●
-#        bi       so
-function gate_multiplier()
-    m = zeros(Bool, 2, 2, 2, 2, 2, 2)
-    for ai=0:1, bi=0:1, ci=0:1, si=0:1
-        lhs = (ai & bi) + si + ci
-        so = lhs % 2
-        co = lhs ÷ 2
-        m[bi+1,si+1,ai+1,co+1,ci+1,so+1] = true
-    end
-    return m
-end
-
-export gridsearch_multiplier
-function gridsearch_multiplier(nrow, ncol, x1, x2, y1, y2)
-    mm = gate_multiplier()
-    @show mm
-    gridsearch(nrow, ncol, [(1, y1), (1, y2), (x1, ncol), (x2, 1), (x2, ncol), (nrow, y2)]) do m
-        for i=1:length(m)
-            !(mm[i]) == isinf(m[i]) || return false
-        end
-        return true
-    end
-end
-
-export gridsearch_basicgate
-function gate_basic(op)
-    m = zeros(Bool, 2, 2, 2)
-    for ai=0:1, bi=0:1
-        ci = if op == :and
-            ai & bi
-        elseif op == :or
-            ai | bi
-        else
-            @assert op == :xor
-            ai ⊻ bi
-        end
-        m[ai+1, bi+1, ci+1] = true
-    end
-    return m
-end
-
-function gridsearch_basicgate(nrow, ncol, gatename)
-    mm = gate_basic(gatename)
-    @show gatename
-    for locations in boundary_locations((nrow, ncol), 3)
-        @show locations
-        res = gridsearch(nrow, ncol, locations) do m
-            for i=1:length(m)
-                !(mm[i]) == isinf(m[i]) || return false
-            end
-            @show m
-            return true
-        end
-        if !isempty(res)
-            return res
-        end
-    end
-end
-
-export gridsearch_fulladder
-function gate_fulladder()
-    m = zeros(Bool, 2, 2, 2, 2, 2)
-    for ai=0:1, bi=0:1, ci=0:1
-        lhs = ai + bi + ci
-        so = lhs % 2
-        co = lhs ÷ 2
-        m[ai+1, bi+1, ci+1, so+1, co+1] = true
-    end
-    return m
-end
-
 function gridsearch_fulladder(nrow, ncol)
     mm = gate_fulladder()
     #[(1, y1), (x1, ncol), (x2, ncol), (nrow, y1), (x2, 1)]
@@ -168,25 +41,26 @@ function gridsearch_fulladder(nrow, ncol)
     end
 end
 
-function boundary_locations(sz, k)
+# two boundary nodes can not be within `blockade_radius`
+function boundary_locations(gridsize::Tuple, k::Int; blockade_radius=0.1)
     pool = Tuple{Int,Int}[]
-    for i=1:sz[1]
+    for i=1:gridsize[1]
         push!(pool, (i,1))
-        push!(pool, (i,sz[2]))
+        push!(pool, (i,gridsize[2]))
     end
-    for j=2:sz[2]-1
+    for j=2:gridsize[2]-1
         push!(pool, (1,j))
-        push!(pool, (sz[1],j))
+        push!(pool, (gridsize[1],j))
     end
-    iter_boundarys!(k, Tuple{Int,Int}[], pool, Vector{Tuple{Int,Int}}[])
+    iter_boundarys!(k, Tuple{Int,Int}[], pool, Vector{Tuple{Int,Int}}[]; blockade_radius)
 end
 
-function iter_boundarys!(n::Int, blist, pool, res)
+function iter_boundarys!(n::Int, blist, pool, res; blockade_radius)
     if n == 0
         push!(res, blist)
     end
     for loc in pool
-        rem = filter(x->distance(loc, x) > 1.5, pool)
+        rem = filter(x->distance(loc, x) > blockade_radius, pool)
         iter_boundarys!(n-1, [blist..., loc], rem, res)
     end
     return res

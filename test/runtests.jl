@@ -1,6 +1,6 @@
-using SearchGadgets
+using GadgetSearcher
 using Test
 
-@testset "gridsearch" begin
-    incldue("gridsearch.jl")
+@testset "gatesearch" begin
+    include("gatesearch.jl")
 end
