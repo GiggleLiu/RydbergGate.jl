@@ -1,4 +1,5 @@
-*.jl.*.cov
-*.jl.cov
-*.jl.mem
+/.vscode/
 /Manifest.toml
+graph9.g6
+_local
+data/*/*.dat

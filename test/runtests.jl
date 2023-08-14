@@ -1,6 +1,6 @@
-using GadgetSearcher
+using SearchGadgets
 using Test
 
-@testset "GadgetSearcher.jl" begin
-    # Write your tests here.
+@testset "gridsearch" begin
+    incldue("gridsearch.jl")
 end
