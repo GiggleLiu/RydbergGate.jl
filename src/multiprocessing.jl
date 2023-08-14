@@ -1,7 +1,7 @@
 function do_work(f, jobs, results) # define work function everywhere
     while true
         job = take!(jobs)
-        @info "running $job"
+        @debug "running $job"
         res = f(job)
         put!(results, res)
     end

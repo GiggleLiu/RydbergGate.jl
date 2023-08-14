@@ -11,7 +11,7 @@ export nonisomorphic_graphs
 export multiprocess_run
 export search_gate
 export @logic
-export PWGraph, simplegraph
+export PWGraph, simplegraph, save_pwgraph, load_pwgraph
 
 
 include("utils.jl")

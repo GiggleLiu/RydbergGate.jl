@@ -12,5 +12,5 @@ if !isdir(folder)
     mkdir(folder)
 end
 
-counts = search_gate(parse(Int,ARGS[1]); cross_type=ARGS[3], outputfolder=folder, overwrite=parse(Bool,ARGS[2]), onlycount=false)
+counts = search_gate(parse(Int,ARGS[1]); output_folder=folder, overwrite=parse(Bool,ARGS[2]))
 println("total count = $(sum(counts))")

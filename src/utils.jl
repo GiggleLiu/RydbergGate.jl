@@ -13,7 +13,7 @@ function graph2ixs(g::SimpleGraph)
 end
 
 # create a simple graph from edges
-function mis_compact_tropical_tensor(ixs::AbstractVector, iy::AbstractVector, size_dict; compact::Bool=true, weights=NoWeight())
+function mis_tropical_tensor(ixs::AbstractVector, iy::AbstractVector, size_dict; compact::Bool=true, weights=NoWeight())
     ixs = vcat([[i] for i in 1:length(size_dict)], ixs) # labels for vertex tensors
     optcode = optimize_fastgreedy(ixs, iy)  # specialized, faster approach
     xs = [length(ix)==1 ? GenericTensorNetworks.misv([Tropical(0.0), Tropical(weights isa NoWeight ? 0.0 : weights[ix[1]])]) : GenericTensorNetworks.misb(Tropical{Float64}, length(ix)) for ix in ixs]
@@ -59,9 +59,9 @@ function optimize_fastgreedy(ixs, iy)
 end
 
 
-function mis_compact_tropical_tensor(g::SimpleGraph, openvertices::AbstractVector, size_dict=Dict([i=>2 for i=1:nv(g)]); compact::Bool=true)
+function mis_tropical_tensor(g::SimpleGraph, openvertices::AbstractVector, size_dict=Dict([i=>2 for i=1:nv(g)]); compact::Bool=true)
     ixs = graph2ixs(g)
-    return mis_compact_tropical_tensor(ixs, openvertices, size_dict; compact=compact)
+    return mis_tropical_tensor(ixs, openvertices, size_dict; compact=compact)
 end
 
 # create a simple graph from edges
