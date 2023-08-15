@@ -15,7 +15,7 @@ function gridsearch(match, nrow, ncol, boundary_locs::T) where T<:Vector
             end
         end
         g = unitdisk_graph(locs, 1.6)
-        M2 = GenericTensorNetworks.content.(mis_compact_tropical_tensor(g, collect(1:N)))
+        M2 = GenericTensorNetworks.content.(mis_tropical_tensor(g, collect(1:N); compact=false))
         if match(M2)
             @show locs
             push!(res, locs)
@@ -152,7 +152,7 @@ end
 function detect_logic_gate(g::Graph; inputs, output, weights=NoWeight())
     ixs = graph2ixs(g)
     size_dict = Dict([i=>2 for i=1:nv(g)])
-    m = mis_compact_tropical_tensor(ixs, [inputs..., output], size_dict; compact=false, weights)
+    m = mis_tropical_tensor(ixs, [inputs..., output], size_dict; compact=false, weights)
     #m = solve(IndependentSet(g; openvertices=[inputs..., output], weights), SizeMax())
     sig, table = get_truth_table(m)
     return sig, table

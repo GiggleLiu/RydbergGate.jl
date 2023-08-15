@@ -63,15 +63,6 @@ function load_pwgraph(filename::String)
     end
 end
 
-# function add_pins_and_weights(name::String, graph::SimpleGraph, weight_range)
-#     d = Dict{String, PWGraph}()
-#     for (k, weight_index) in enumerate(CartesianIndices(ntuple(i->length(weight_range), nv(graph))))
-#         weights = [weight_range[k] for k in weight_index.I]
-#         d[name * "-w$k"] = PWGraph(graph, pins, weights)
-#     end
-#     return d
-# end
-
 function search_gate(graphs::Dict{String, PWGraph}, target_gate; output_folder=nothing, overwrite=false, multiprocess=false, allow_degeneracy=true)
     # check if the existing computing result exists
     if output_folder !== nothing && isdir(output_folder) && !isempty(readdir(output_folder)) && !overwrite
