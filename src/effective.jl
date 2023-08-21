@@ -1,6 +1,6 @@
 using Yao
 using Yao.ConstGate: P1
-
+using LinearAlgebra
 using Graphs
 
 function RydbergH(graph::SimpleGraph, U::Real, Δs::AbstractVector{<:Real}, Ωs::AbstractVector)
@@ -44,25 +44,6 @@ end
     @test E1[1] ≈ E3[1]
 end
 
-graph = g5()
-δs = 1e-2 * randn(5)
-Ωs = 1e-2 * randn(5)
-h0 = RydbergH(graph, 1000.0, ones(Float64, 5), zeros(Float64, 5))
-eig = eigen(Hermitian(Matrix(h0)))
-# the lowest 4 energy levels
-subspace = eig.vectors[:, 1:4]
-h = RydbergH(graph, 1000.0, 1.0 .+ δs, Ωs)
-heff = subspace' * effectiveH(eig.values[1], mat(h), subspace) * subspace
-
-δs2 = 1e-2 * randn(5)
-Ωs2 = 1e-2 * randn(5)
-# the lowest 4 energy levels
-h2 = RydbergH(graph, 1000.0, 1.0 .+ δs2, Ωs2)
-heff2 = subspace' * effectiveH(eig.values[1], mat(h2), subspace) * subspace
-
-# add up two effective Hamiltonian
-effective123 = mat(put(3, (1, 2)=>matblock(heff)) + put(3, (2, 3)=>matblock(heff2)))
-
 # add up two graphs
 function glue_graphs(g::SimpleGraph, wg::AbstractVector{T}, h::SimpleGraph, wh::AbstractVector{T}, gluepoints::Dict) where T
     # copy g
@@ -99,3 +80,40 @@ end
     @test all(i->E[i] ≈ -4, 1:8)
     @test !(E[9] ≈ -4)
 end
+
+graph = g5()
+Δs = 1e-2 * randn(5) .+ 1
+Ωs = 1e-2 * randn(5)
+h0 = RydbergH(graph, 1000.0, ones(Float64, 5), zeros(Float64, 5))
+eig = eigen(Hermitian(Matrix(h0)))
+# the lowest 4 energy levels
+subspace = eig.vectors[:, 1:4]
+h = RydbergH(graph, 1000.0, Δs, Ωs)
+heff = subspace' * effectiveH(eig.values[1], mat(h), subspace) * subspace
+
+Δs2 = 1e-2 * randn(5) .+ 1
+Ωs2 = 1e-2 * randn(5)
+# the lowest 4 energy levels
+h2 = RydbergH(graph, 1000.0, Δs2, Ωs2)
+heff2 = subspace' * effectiveH(eig.values[1], mat(h2), subspace) * subspace
+
+# add up two effective Hamiltonian
+effective123 = Matrix(put(3, (1, 2)=>matblock(heff)) + put(3, (2, 3)=>matblock(heff2)))
+
+using Yao.YaoArrayRegister.StaticArrays
+# creating mask
+ggraph0, gweights0 = glue_graphs(graph, [SVector(a, b) for (a, b) in zip(zeros(Int, nv(graph)), ones(Int, nv(graph)))],
+                                graph, [SVector(a, b) for (a, b) in zip(zeros(Int, nv(graph)), ones(Int, nv(graph)))],
+                                Dict(3=>1))
+gh0 = RydbergH(ggraph, 1000.0, getindex.(gweights0, 2), getindex.(gweights0, 1))
+geig = eigen(Hermitian(Matrix(gh0)))
+gsubspace = geig.vectors[:, 1:8]
+
+ggraph, gweights = glue_graphs(graph, [SVector(a, b) for (a, b) in zip(Ωs, Δs)],
+                                graph, [SVector(a, b) for (a, b) in zip(Ωs2, Δs2)],
+                                Dict(3=>1))
+h3 = RydbergH(ggraph, 1000.0, getindex.(gweights, 2), getindex.(gweights, 1))
+effectiveabc = gsubspace' * effectiveH(geig.values[1], mat(h3), gsubspace) * gsubspace
+
+effective123 .- effectiveabc
+effective123
