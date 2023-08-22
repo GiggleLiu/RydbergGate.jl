@@ -87,7 +87,8 @@ graph = g5()
 h0 = RydbergH(graph, 1000.0, ones(Float64, 5), zeros(Float64, 5))
 eig = eigen(Hermitian(Matrix(h0)))
 # the lowest 4 energy levels
-subspace = eig.vectors[:, 1:4]
+#subspace = eig.vectors[:, 1:4]
+subspace = hcat(statevec.(product_state.([bit"01010", bit"01001", bit"10100", bit"00101"]))...)
 h = RydbergH(graph, 1000.0, Δs, Ωs)
 heff = subspace' * effectiveH(eig.values[1], mat(h), subspace) * subspace
 
@@ -107,7 +108,11 @@ ggraph0, gweights0 = glue_graphs(graph, [SVector(a, b) for (a, b) in zip(zeros(I
                                 Dict(3=>1))
 gh0 = RydbergH(ggraph, 1000.0, getindex.(gweights0, 2), getindex.(gweights0, 1))
 geig = eigen(Hermitian(Matrix(gh0)))
-gsubspace = geig.vectors[:, 1:8]
+#gsubspace = geig.vectors[:, 1:8]
+gsubspace = hcat(statevec.(product_state.([
+    bit"01_0101_01_0", bit"01_0101_00_1", bit"01_0010_10_0", bit"01_0000_10_1",
+    bit"10_1001_01_0", bit"10_1001_00_1", bit"00_1010_10_0", bit"00_1000_10_1",
+]))...)
 
 ggraph, gweights = glue_graphs(graph, [SVector(a, b) for (a, b) in zip(Ωs, Δs)],
                                 graph, [SVector(a, b) for (a, b) in zip(Ωs2, Δs2)],
