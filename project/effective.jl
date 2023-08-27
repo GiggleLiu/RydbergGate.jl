@@ -3,6 +3,13 @@ using Yao.ConstGate: P1
 using LinearAlgebra
 using Graphs
 
+# create a Rydberg Hamiltonian
+# graph: the graph topology
+# U: the blockade interaction strength defined on edges
+# Δs: the strength of detunings on atoms (vertices)
+# Ωs: the strength of Pauli X/Y terms on atoms.
+# P1 = n
+# P1 = n
 function RydbergH(graph::SimpleGraph, U::Real, Δs::AbstractVector{<:Real}, Ωs::AbstractVector)
     Ωx = real.(Ωs)
     Ωy = imag.(Ωs)
@@ -14,6 +21,7 @@ function RydbergH(graph::SimpleGraph, U::Real, Δs::AbstractVector{<:Real}, Ωs:
     return h
 end
 
+# The 5-vertex ring graph with chord.
 function g5()
     g = SimpleGraph(5)
     for (i, j) in [(1, 2), (2, 3), (3, 4), (4, 5), (5, 1), (2, 5)]
@@ -22,6 +30,7 @@ function g5()
     return g
 end
 
+# construct an effective Hamiltonian
 function effectiveH(z, H::AbstractMatrix, subspace::AbstractMatrix{T}) where T
     P = subspace * subspace'
     @assert P^2 ≈ P
@@ -30,6 +39,7 @@ function effectiveH(z, H::AbstractMatrix, subspace::AbstractMatrix{T}) where T
     return P * H * P + PHQ * pinv(z * Q - Q * H * Q) * PHQ'
 end
 
+using Test
 @testset "effectiveH" begin
     n = 5
     h = EasyBuild.heisenberg(n; periodic=false)
@@ -44,7 +54,10 @@ end
     @test E1[1] ≈ E3[1]
 end
 
-# add up two graphs
+# add up two graphs g and h
+# wg are weights on graph g
+# wh are weights on graph h
+# gluepoints defines a mapping between vertices in g and vertices in h
 function glue_graphs(g::SimpleGraph, wg::AbstractVector{T}, h::SimpleGraph, wh::AbstractVector{T}, gluepoints::Dict) where T
     # copy g
     graph = SimpleGraph(nv(g)+nv(h)-length(gluepoints))
